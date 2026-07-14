@@ -8,6 +8,21 @@
 # (On 8086-tab.net the `:443` suffix tells the emulator's gateway to fetch
 # over HTTPS. The guest speaks plain HTTP/1.0 and never learns TLS exists.)
 #
+# REVISIONS. REV below is the revision of ping.c this installer ships. The
+# marker is a FILE whose NAME carries the revision — pingrev$REV — because
+# ELKS sh has no $(...) to compare a version string with, but `test -f` is
+# plenty when the version is in the filename:
+#
+#   /etc/pingrev$REV   -> this machine's /bin/ping is rev $REV
+#   $work/pingrev$REV  -> the workshop's ping + ping.c are rev $REV
+#
+# No marker means STALE. A stale /bin/ping gets reinstalled; a stale
+# workshop gets cleared and re-fetched. Without this, a saved drive would
+# restore its old binary forever — and rebuild the old bug from its old
+# source — no matter what this repo ships. (rev 5: ping learned its real
+# address from $LOCALIP and to answer ARP; before that, tab could not
+# ping tab.)
+#
 # If /dev/hdb is mounted it becomes the workshop: the SOURCE is kept there
 # next to the binary, so a rebuild never needs the network again, and an md5
 # beside it says which source that binary was built from. Three paths, in
@@ -27,11 +42,16 @@
 # see it.
 
 REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/main
+REV=5
 
 if test -f /bin/ping
 then
-echo "ping: already installed"
+if test -f /etc/pingrev$REV
+then
+echo "ping: already installed (rev $REV)"
 exit 0
+fi
+echo "ping: /bin/ping is older than rev $REV -- updating"
 fi
 
 # The workshop: the drive if we have one (things persist), else /tmp.
@@ -42,13 +62,25 @@ work=/mnt
 echo "ping: using /dev/hdb as the workshop -- source and binary persist"
 fi
 
-# 1. A binary on the drive, still matching its source? Just take it.
+# A stale workshop is worse than an empty one: an old binary would be
+# restored forever, and an old source would rebuild the old bug. No
+# marker for THIS rev -> clear the artifacts and start clean.
+if test -f $work/pingrev$REV
+then
+echo "ping: the workshop is rev $REV -- current"
+else
+rm -f $work/ping $work/ping.c $work/pingrev*
+fi
+
+# 1. A binary on the drive (its rev vouched for above)? Just take it.
 if test -f $work/ping
 then
 if test -f $work/ping.c
 then
 echo "ping: found a built ping on the drive"
 cp $work/ping /bin/ping
+rm -f /etc/pingrev*
+echo $REV > /etc/pingrev$REV
 echo "ping: installed /bin/ping (no compile needed)"
 md5sum $work/ping.c
 if test "$work" = /mnt
@@ -72,6 +104,7 @@ then
 echo "ping: got it."
 else
 echo "ping: download failed -- is the network up? (net start ne0)"
+rm -f $work/ping.c
 if test "$work" = /mnt
 then
 umount /mnt
@@ -99,6 +132,9 @@ rm -f ping.i ping.as ping.o
 if test -f $work/ping
 then
 cp $work/ping /bin/ping
+rm -f /etc/pingrev*
+echo $REV > /etc/pingrev$REV
+echo $REV > $work/pingrev$REV
 echo "ping: installed /bin/ping"
 md5sum ping.c
 if test "$work" = /mnt
