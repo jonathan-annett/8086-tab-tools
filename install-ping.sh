@@ -17,9 +17,15 @@
 #   otherwise                 -> fetch ping.c, build it, install it, and
 #                                stash a copy on /dev/hdb if one is mounted
 #
-# NOTE: ping drives the NIC directly, so it needs the device to itself.
-# Install with the network UP (this script has to download), then
-# `net stop` before you ping, and `net start ne0` afterwards.
+# Run it with the network UP — it has to download. It then takes the network
+# DOWN itself, for two reasons that happen to agree:
+#
+#   * c86 needs the memory that ktcp/telnetd/ftpd are holding. On a 640K
+#     machine that is the difference between a build and "not enough memory".
+#   * ping drives the NIC directly, and a running ktcp drains every inbound
+#     frame before ping can see it.
+#
+# So when this finishes: ping, then `net start ne0` to get the network back.
 
 REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/refs/heads/main
 REV=4
@@ -57,7 +63,7 @@ urlget $REPO/ping.c > ping.c
 
 if test -s ping.c
 then
-echo "ping: got it. building with the on-image c86 toolchain, please wait..."
+echo "ping: got it."
 else
 echo "ping: download failed -- is the network up? (net start ne0)"
 if test "$drive" = yes
@@ -66,6 +72,18 @@ umount /mnt
 fi
 exit 1
 fi
+
+# The network was only ever needed for the download, and now it is in the
+# way: ktcp, telnetd and ftpd are sitting on the memory c86 wants, and on
+# a 640K machine that is the difference between a build and
+# "c86: not enough memory". Take the stack down before compiling.
+#
+# It has to come down for ping anyway -- ping drives the NIC directly, and
+# a running ktcp drains every inbound frame before ping can see it.
+echo "ping: stopping the network -- the compiler needs that memory"
+net stop
+
+echo "ping: building with the on-image c86 toolchain, please wait..."
 
 # Flags are the ones from the image's own /usr/src/Makefile.
 cpp -0 -I/usr/include -I/usr/include/c86 ping.c -o ping.i
@@ -84,7 +102,8 @@ echo $REV > /mnt/pingrev4
 sync
 echo "ping: saved to /dev/hdb -- press Save in the browser to keep it"
 fi
-echo "ping: try 'net stop' then 'ping elk' (the gateway) or 'ping cat'"
+echo "ping: the network is DOWN (the compiler needed the memory)."
+echo "ping: try 'ping elk' (the gateway) or 'ping cat', then 'net start ne0'"
 else
 echo "ping: BUILD FAILED -- the transcript above has the reason"
 fi
