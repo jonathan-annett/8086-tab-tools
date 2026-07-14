@@ -3,7 +3,7 @@
 # Install `ping` on an ELKS machine — fetch the source, build it with the C
 # compiler that ships on the image, install it.
 #
-#   urlget http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/refs/heads/main/install-ping.sh | sh
+#   urlget http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/main/install-ping.sh | sh
 #
 # (On 8086-tab.net the `:443` suffix tells the emulator's gateway to fetch
 # over HTTPS. The guest speaks plain HTTP/1.0 and never learns TLS exists.)
@@ -26,7 +26,7 @@
 # directly, and a running ktcp drains every inbound frame before ping can
 # see it.
 
-REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/refs/heads/main
+REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/main
 
 if test -f /bin/ping
 then
