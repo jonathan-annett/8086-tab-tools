@@ -21,7 +21,8 @@
 # restore its old binary forever — and rebuild the old bug from its old
 # source — no matter what this repo ships. (rev 5: ping learned its real
 # address from $LOCALIP and to answer ARP; before that, tab could not
-# ping tab.)
+# ping tab. rev 6: self-ping goes loopback instead of ARPing an address
+# nothing may answer for.)
 #
 # If /dev/hdb is mounted it becomes the workshop: the SOURCE is kept there
 # next to the binary, so a rebuild never needs the network again, and an md5
@@ -42,7 +43,7 @@
 # see it.
 
 REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/main
-REV=5
+REV=6
 
 if test -f /bin/ping
 then
@@ -137,9 +138,12 @@ echo $REV > /etc/pingrev$REV
 echo $REV > $work/pingrev$REV
 echo "ping: installed /bin/ping"
 md5sum ping.c
+# Flush unconditionally: since seed rev 2 the boot script may mount the
+# drive OVER /tmp, so the "/tmp" workshop can be persistent too -- and a
+# Save must not snapshot half-flushed buffers.
+sync
 if test "$work" = /mnt
 then
-sync
 umount /mnt
 echo "ping: source and binary are on /dev/hdb -- press Save to keep them."
 echo "ping: after that, every boot installs ping without a download."
