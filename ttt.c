@@ -28,11 +28,15 @@ extern int socket();
 extern int bind();
 extern int listen();
 extern int accept();
-extern int connect();
 extern int read();
 extern int write();
 extern int close();
 extern unsigned long in_gethostbyname();
+/* connect-with-timeout from libc86's net/ — the client telnet.c uses.
+ * rev 2: plain connect() hung forever without ever emitting a SYN
+ * (tab-shark-verified) while telnet reached the same listener fine;
+ * cloning the WORKING client's idiom, timeout included. */
+extern int in_connect();
 
 #define AF_INET     0   /* ELKS: linuxmt/socket.h — NOT the BSD 2 */
 #define SOCK_STREAM 1
@@ -155,8 +159,8 @@ int main(int argc, char **argv)
         addr.sin_port = SWAP16(TTT_PORT);
         addr.sin_addr = ip;
         printf("ttt: connecting to %s ...\n", argv[1]);
-        if (connect(fd, &addr, sizeof(addr)) < 0) {
-            printf("ttt: connect failed (is their ttt waiting?)\n");
+        if (in_connect(fd, &addr, sizeof(addr), 10) < 0) {
+            printf("ttt: connect failed or timed out (is their ttt waiting?)\n");
             return 1;
         }
         printf("ttt: connected -- you are O, X starts.\n");

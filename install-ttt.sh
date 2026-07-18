@@ -19,7 +19,7 @@
 # install reminds you to `net start ne0` before the game.
 
 REPO=http://raw.githubusercontent.com:443/jonathan-annett/8086-tab-tools/main
-REV=1
+REV=2
 
 if test -f /bin/ttt
 then
