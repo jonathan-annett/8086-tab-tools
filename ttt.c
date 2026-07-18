@@ -155,6 +155,19 @@ int main(int argc, char **argv)
             printf("ttt: socket failed (is ktcp running? net start ne0)\n");
             return 1;
         }
+        /* rev 3 — THE fix: on ELKS a client MUST bind before connect.
+         * The bind is what creates ktcp's control block (the only
+         * tcpcb_new in tcpdev.c lives in tcpdev_bind); connect on an
+         * unbound socket hits tcpdev_connect's silent no-cb return
+         * and the caller sleeps forever — no SYN, no error. telnet.c
+         * knew (its line 222); nothing else wrote it down. */
+        addr.sin_family = AF_INET;
+        addr.sin_port = 0;          /* PORT_ANY */
+        addr.sin_addr = 0;          /* INADDR_ANY */
+        if (bind(fd, &addr, sizeof(addr)) < 0) {
+            printf("ttt: bind failed\n");
+            return 1;
+        }
         addr.sin_family = AF_INET;
         addr.sin_port = SWAP16(TTT_PORT);
         addr.sin_addr = ip;
